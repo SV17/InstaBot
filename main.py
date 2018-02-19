@@ -1,6 +1,11 @@
 # Importing requests
 import requests
 
+# Importing pprint for displaying systematic ouput
+from pprint import pprint
+
+import urllib
+
 # Importing termcolor for color
 from termcolor import colored
 
@@ -9,22 +14,23 @@ response = requests.get('https://api.jsonbin.io/b/59d0f30408be13271f7df29c').jso
 # Gets the access token in response
 APP_ACCESS_TOKEN = response['access_token']
 # Base URL remains same so storing it in a variable
-BASE_URL='https://api.instagram.com/v1/'
+BASE_URL = 'https://api.instagram.com/v1/'
 
-# Method to display self info
+
+# Method to display info of owner
 def self_info():
-    r = requests.get(("%susers/self/?access_token=%s") % (BASE_URL,APP_ACCESS_TOKEN)).json()
-    print colored("\nMy Info is : ","magenta")
-    if r['meta']['code'] == 200:                # HTTP 200 means transmission is OK
+    r = requests.get(("%susers/self/?access_token=%s") % (BASE_URL, APP_ACCESS_TOKEN)).json()
+    print colored("\nMy Info is : ", "magenta")
+    if r['meta']['code'] == 200:  # HTTP 200 means transmission is OK
         # Code to print user's details
         if 'data' in r:
-            print 'ID : %s' %(r['data']['id'])
+            print 'ID : %s' % (r['data']['id'])
             print 'Username : %s' % (r['data']['username'])
             print 'Full name : %s ' % (r['data']['full_name'])
-            print 'Profile picture URL : %s' %(r['data']['profile_picture'])
-            print 'Short bio : %s' %(r['data']['bio'])
-            print 'Website : %s' %(r['data']['website'])
-            print 'Business profile(True(Yes) or False(No) : %s' %(r['data']['is_business'])
+            print 'Profile picture URL : %s' % (r['data']['profile_picture'])
+            print 'Short bio : %s' % (r['data']['bio'])
+            print 'Website : %s' % (r['data']['website'])
+            print 'Business profile(True(Yes) or False(No) : %s' % (r['data']['is_business'])
             print 'Number of followers: %s' % (r['data']['counts']['followed_by'])
             print 'Number of people I am following: %s' % (r['data']['counts']['follows'])
             print 'Number of posts: %s' % (r['data']['counts']['media'])
@@ -34,28 +40,44 @@ def self_info():
     else:
         print 'Status code other than 200 received!'
 
+
+# Method to get the recent posts of the owner
+def owner_recent_post():
+    user_post = requests.get(('%susers/self/media/recent/?access_token=%s') % (BASE_URL, APP_ACCESS_TOKEN)).json()
+    if user_post['meta']['code'] == 200:
+        if len(user_post['data']) > 0:
+            image_name = user_post['data'][0]['id'] + '.jpeg'
+            image_url = user_post['data'][0]['images']['standard_resolution']['url']
+            urllib.urlretrieve(image_url, image_name)
+            print 'Your image has been downloaded!'
+        else:
+            print 'Post does not exist!'
+    else:
+        print "Status code other than 200 received!"
+
+
 # Method to get the user id
-def get_user_id(insta_username):
-    info = requests.get((BASE_URL + 'users/search?q=%s&access_token=%s') % (insta_username, APP_ACCESS_TOKEN)).json()
-    
-    if info['meta']['code'] == 200:  # HTTP 200 means transmission is OK
-        if len(info['data']):               # Checking length using len() function
-            return info['data'][0]['id']
+def get_user_id(user_name):
+    r = requests.get(("%susers/search?q=%s&access_token=%s") % (BASE_URL, user_name, APP_ACCESS_TOKEN)).json()
+
+    if r['meta']['code'] == 200:  # HTTP 200 means transmission is OK
+        if len(r['data']):  # Checking length using len() function
+            return r['data'][0]['id']
         else:
             return None
     else:
-        print 'Status code other than 200 received!'      # If transmission is not OK
+        print 'Status code other than 200 received!'  # If transmission is not OK
 
 
 # Method to get the information about the user
-def get_info(insta_username):
-    user_id = get_user_id(insta_username)
+def get_user_info(user_name):
+    user_id = get_user_id(user_name)
     if user_id == None:
         print 'User does not exist!'
         exit()
     else:
-        info = requests.get((BASE_URL + 'users/%s?access_token=%s') % (user_id, APP_ACCESS_TOKEN)).json()
-        print colored("\nUser Info is :","magenta")
+        info = requests.get("%susers/%s?access_token=%s" % (BASE_URL, user_id, APP_ACCESS_TOKEN)).json()
+        print colored("\nUser Info is :", "magenta")
         if info['meta']['code'] == 200:
             if len(info['data']):
                 print 'ID : %s' % (info['data']['id'])
@@ -73,7 +95,28 @@ def get_info(insta_username):
         else:
             print 'Status code other than 200 received!'
 
-print colored("\n*******<< Welcome to INSTABOT >>*******","magenta")
+
+# Method to get the posts of the user
+def get_user_post(u_name):
+    user_id = get_user_id(u_name)
+    if user_id == None:
+        print 'User does not exist!'
+        exit()
+    else:
+        post = requests.get(('%susers/%s/media/recent/?access_token=%s') % (BASE_URL, user_id, APP_ACCESS_TOKEN)).json()
+        if post['meta']['code'] == 200:
+            if len(post['data']) > 0:
+                image_name = post['data'][0]['id'] + '.jpeg'
+                image_url = post['data'][0]['images']['standard_resolution']['url']
+                urllib.urlretrieve(image_url, image_name)
+                print 'Your image has been downloaded!'
+            else:
+                print 'Post does not exist!'
+        else:
+            print "Status code other than 200 received!"
+
+
+print colored("\n*******<< Welcome to INSTABOT >>*******", "magenta")
 
 
 # Starting application
@@ -82,26 +125,28 @@ def start_bot():
     # Initializing show_menu with True value
     show_menu = True
     while show_menu:
-         # Asking the user's choice
-         menu_choice = input(colored("\nWhat do you want to do? \n 1. Get your own details\n 2. Get user\'s id by the username\n 3. Get user's information\n 0. Exit\n","blue"))
-
-         if menu_choice == 1:
-             self_info()           # Calling method
-         elif menu_choice == 2:
-             # Asking the user name
-             insta_username = raw_input("Enter the username of the user: ")
-             user_id = get_user_id(insta_username)          # Calling get_user_id method
-             print(colored("User ID is : %s ","magenta")) % (user_id)
-         elif menu_choice == 3:
-             # Asking the user name
-             username = raw_input("Enter the username of the user: ")
-             get_info(username)                       # Calling the get_info method
-         elif menu_choice ==0:
-             show_menu = False
-
-         else:
+        # Asking the user's choice
+        print (colored(
+            "\nWhat do you want to do? \n 1. Get your own details\n 2. Get your own recent post\n 3. Get user's information\n 4. Get user's recent post\n 0. Exit\n",
+            "blue"))
+        menu_choice = input("Select your choice : ")
+        if menu_choice == 1:
+            self_info()  # Calling method
+        elif menu_choice == 2:
+            owner_recent_post()
+        elif menu_choice == 3:
+            # Asking the user name
+            insta_username = raw_input("Enter the username of the user: ")
+            get_user_info(insta_username)  # Calling the get_info method
+        elif menu_choice == 4:
+            insta_username = raw_input("Enter the username of the user: ")
+            get_user_post(insta_username)
+        elif menu_choice == 0:
+            show_menu = False
+        else:
             # If user chooses something other than the menu choices
             print "Invalid choice!!!"
+
 
 # Calling the start_bot() method to start the application
 start_bot()
