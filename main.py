@@ -1,19 +1,17 @@
 # Importing requests
 import requests
 
-# Importing pprint for displaying systematic ouput
-from pprint import pprint
-
+# Importing urllib to download posts
 import urllib
 
-# Importing termcolor for color
+# Importing termcolor for colour
 from termcolor import colored
 
 # Takes the URL from user and coverts it into json format
 response = requests.get('https://api.jsonbin.io/b/59d0f30408be13271f7df29c').json()
 # Gets the access token in response
 APP_ACCESS_TOKEN = response['access_token']
-# Base URL remains same so storing it in a variable
+# Common for all the Instagram API endpoints
 BASE_URL = 'https://api.instagram.com/v1/'
 
 
@@ -40,20 +38,31 @@ def self_info():
     else:
         print 'Status code other than 200 received!'
 
-
-# Method to get the recent posts of the owner
+# Method to get the recent post of owner
 def owner_recent_post():
     user_post = requests.get(('%susers/self/media/recent/?access_token=%s') % (BASE_URL, APP_ACCESS_TOKEN)).json()
     if user_post['meta']['code'] == 200:
-        if len(user_post['data']) > 0:
-            image_name = user_post['data'][0]['id'] + '.jpeg'
-            image_url = user_post['data'][0]['images']['standard_resolution']['url']
-            urllib.urlretrieve(image_url, image_name)
-            print 'Your image has been downloaded!'
+        if len(user_post['data']):
+                r = user_post['data'][0]['images']['standard_resolution']['url']
+                print ("The URL for recent post is : ")
+                print (r)
+                if user_post['data'][0]['caption']:
+                    caption = user_post['data'][0]['caption']['text']
+                    print "Caption for recent post is : "
+                    print caption
+                else:
+                    print "There isn't any caption for this post!"
+                if user_post['data'][0]['type'] == "image":
+                     image_name = user_post['data'][0]['id'] + '.jpeg'
+                     image_url = user_post['data'][0]['images']['standard_resolution']['url']
+                     urllib.urlretrieve(image_url, image_name)
+                     print "Your image has been downloaded!"
+                else:
+                    print "The post is not an image."
         else:
-            print 'Post does not exist!'
+            print "There are no posts!"
     else:
-        print "Status code other than 200 received!"
+        print 'Status code other than 200 received!'
 
 
 # Method to get the user id
@@ -96,8 +105,33 @@ def get_user_info(user_name):
             print 'Status code other than 200 received!'
 
 
-# Method to get the posts of the user
+# Method to get recent post of a user
 def get_user_post(u_name):
+        user_id = get_user_id(u_name)
+        if user_id == None:
+            print 'User does not exist!'
+            exit()
+        else:
+            post = requests.get(
+                ('%susers/%s/media/recent/?access_token=%s') % (BASE_URL, user_id, APP_ACCESS_TOKEN)).json()
+            if post['meta']['code'] == 200:
+                if len(post['data']):
+                    r = post['data'][0]['images']['standard_resolution']['url']
+                    print ("The URL of post is : ")
+                    print (r)
+                    if post['data'][0]['caption']:
+                        caption = post['data'][0]['caption']['text']
+                        print "Caption of post is : "
+                        print caption
+                    else:
+                        print "There isn't any caption of this post!"
+                else:
+                    print 'There are no posts for this user!'
+            else:
+                print 'Status code other than 200 received!'
+
+# Method to download recent post of a user
+def download_user_post(u_name):
     user_id = get_user_id(u_name)
     if user_id == None:
         print 'User does not exist!'
@@ -106,10 +140,13 @@ def get_user_post(u_name):
         post = requests.get(('%susers/%s/media/recent/?access_token=%s') % (BASE_URL, user_id, APP_ACCESS_TOKEN)).json()
         if post['meta']['code'] == 200:
             if len(post['data']) > 0:
-                image_name = post['data'][0]['id'] + '.jpeg'
-                image_url = post['data'][0]['images']['standard_resolution']['url']
-                urllib.urlretrieve(image_url, image_name)
-                print 'Your image has been downloaded!'
+                if post['data'][0]['type'] == "image":
+                     image_name = post['data'][0]['id'] + '.jpeg'
+                     image_url = post['data'][0]['images']['standard_resolution']['url']
+                     urllib.urlretrieve(image_url, image_name)
+                     print "Your image has been downloaded!"
+                else:
+                    print "The post is not an image."
             else:
                 print 'Post does not exist!'
         else:
@@ -127,7 +164,7 @@ def start_bot():
     while show_menu:
         # Asking the user's choice
         print (colored(
-            "\nWhat do you want to do? \n 1. Get your own details\n 2. Get your own recent post\n 3. Get user's information\n 4. Get user's recent post\n 0. Exit\n",
+            "\nWhat do you want to do? \n 1. Get your own details\n 2. Get your own recent post\n 3. Get user's information\n 4. Get user's recent post\n 5. Download user's recent post\n 0. Exit\n",
             "blue"))
         menu_choice = input("Select your choice : ")
         if menu_choice == 1:
@@ -141,6 +178,9 @@ def start_bot():
         elif menu_choice == 4:
             insta_username = raw_input("Enter the username of the user: ")
             get_user_post(insta_username)
+        elif menu_choice ==5:
+            insta_username = raw_input("Enter the username of the user: ")
+            download_user_post(insta_username)
         elif menu_choice == 0:
             show_menu = False
         else:
