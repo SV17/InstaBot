@@ -58,9 +58,14 @@ def owner_recent_post():
                      image_name = user_post['data'][0]['id'] + '.jpeg'
                      image_url = user_post['data'][0]['images']['standard_resolution']['url']
                      urllib.urlretrieve(image_url, image_name)                       # Downloading post using urlretrieve method
-                     print (colored("\nYour image has been downloaded!","blue",attrs = ["dark","bold"]))
+                     print (colored("Your image has been downloaded!","blue",attrs = ["dark","bold"]))
+                elif user_post['data'][0]['type'] == "video":
+                    video_name = user_post['data'][0]['id'] + '.mp4'
+                    video_url = user_post['data'][0]['videos']['standard_resolution']['url']
+                    urllib.urlretrieve(video_url, video_name)                   # Downloading the post if its a video
+                    print (colored("Your video has been downloaded!", "blue", attrs=["dark", "bold"]))
                 else:
-                    print (colored("The post is not an image.","red"))               # If the post is not an image
+                    print (colored("The post is neither an image nor a video.","red"))               # If the post is not an image
         else:
             print (colored("There are no posts!","red"))
     else:
@@ -149,8 +154,13 @@ def download_user_post(u_name):
                      image_url = post['data'][0]['images']['standard_resolution']['url']
                      urllib.urlretrieve(image_url, image_name)         # Downloading the post if its an image
                      print (colored("Your image has been downloaded!","blue",attrs = ["dark","bold"]))
+                elif post['data'][0]['type'] == "video":
+                    video_name = post['data'][0]['id'] + '.mp4'
+                    video_url = post['data'][0]['videos']['standard_resolution']['url']
+                    urllib.urlretrieve(video_url, video_name)  # Downloading the post if its a video
+                    print (colored("Your video has been downloaded!", "blue", attrs=["dark", "bold"]))
                 else:
-                    print (colored("The post is not an image.","red"))
+                    print(colored("The post is neither an image nor a video","red"))
             else:
                 print (colored("Post does not exist!","red"))
         else:
