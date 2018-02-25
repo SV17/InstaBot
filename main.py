@@ -4,9 +4,9 @@ import requests
 # Importing urllib to download posts
 import urllib
 
-from pprint import pprint
 from textblob import TextBlob
 
+# For sentimental analysis
 from textblob.sentiments import NaiveBayesAnalyzer
 
 # Importing termcolor for colour
@@ -60,22 +60,33 @@ def owner_recent_post():
                 print caption
             else:
                 print (colored("There isn't any caption for this post!", "red"))
-            if user_post['data'][0]['type'] == "image":  # Checking whether the post is an image or not
-                image_name = user_post['data'][0]['id'] + '.jpeg'
-                image_url = user_post['data'][0]['images']['standard_resolution']['url']
-                urllib.urlretrieve(image_url, image_name)  # Downloading post using urlretrieve method
-                print (colored("Your image has been downloaded!", "blue", attrs=["dark", "bold"]))
-            elif user_post['data'][0]['type'] == "video":
-                video_name = user_post['data'][0]['id'] + '.mp4'
-                video_url = user_post['data'][0]['videos']['standard_resolution']['url']
-                urllib.urlretrieve(video_url, video_name)  # Downloading the post if its a video
-                print (colored("Your video has been downloaded!", "blue", attrs=["dark", "bold"]))
-            else:
-                print (colored("The post is neither an image nor a video.", "red"))  # If the post is not an image
         else:
             print (colored("There are no posts!", "red"))
     else:
         print (colored("Status code other than 200 received!", "red"))
+
+# Method to download owner's recent post
+def download_owner_recent_post():
+        user_post = requests.get('%susers/self/media/recent/?access_token=%s' % (BASE_URL, APP_ACCESS_TOKEN)).json()
+        if user_post['meta']['code'] == 200:  # HTTP 200 means transmission is OK
+            if len(user_post['data']):
+                r = user_post['data'][0]['images']['standard_resolution']['url']  # Image in standard resolution
+                if user_post['data'][0]['type'] == "image":  # Checking whether the post is an image or not
+                    image_name = user_post['data'][0]['id'] + '.jpeg'
+                    image_url = user_post['data'][0]['images']['standard_resolution']['url']
+                    urllib.urlretrieve(image_url, image_name)  # Downloading post using urlretrieve method
+                    print (colored("Your image has been downloaded!", "magenta", attrs=["dark", "bold"]))
+                elif user_post['data'][0]['type'] == "video":
+                    video_name = user_post['data'][0]['id'] + '.mp4'
+                    video_url = user_post['data'][0]['videos']['standard_resolution']['url']
+                    urllib.urlretrieve(video_url, video_name)  # Downloading the post if its a video
+                    print (colored("Your video has been downloaded!", "magenta", attrs=["dark", "bold"]))
+                else:
+                    print (colored("The post is neither an image nor a video.", "red"))  # If the post is not an image
+            else:
+                print (colored("There are no posts!", "red"))
+        else:
+            print (colored("Status code other than 200 received!", "red"))
 
 
 # Method to get the user id
@@ -100,7 +111,7 @@ def get_user_info(user_name):
     else:
         info = requests.get("%susers/%s?access_token=%s" % (BASE_URL, user_id, APP_ACCESS_TOKEN)).json()
         print colored("\nUser Info is :", "magenta")
-        if info['meta']['code'] == 200:
+        if info['meta']['code'] == 200:                  # HTTP 200 means transmission is OK
             if len(info['data']):
                 # Displaying the info of other user
                 print 'ID : %s' % (info['data']['id'])
@@ -127,7 +138,7 @@ def get_user_post(u_name):
         exit()
     else:
         post = requests.get('%susers/%s/media/recent/?access_token=%s' % (BASE_URL, user_id, APP_ACCESS_TOKEN)).json()
-        if post['meta']['code'] == 200:
+        if post['meta']['code'] == 200:                 # HTTP 200 means transmission is OK
             if len(post['data']):
                 r = post['data'][0]['images']['standard_resolution']['url']
                 print (colored("\nThe URL of post is : ", "magenta"))
@@ -152,7 +163,7 @@ def download_user_post(u_name):
         exit()
     else:
         post = requests.get('%susers/%s/media/recent/?access_token=%s' % (BASE_URL, user_id, APP_ACCESS_TOKEN)).json()
-        if post['meta']['code'] == 200:
+        if post['meta']['code'] == 200:                            # HTTP 200 means transmission is OK
             # Checking whether some post exist or not
             if len(post['data']) > 0:
                 if post['data'][0]['type'] == "image":  # Checking if the post is an image or not
@@ -181,7 +192,7 @@ def get_media_id(username):
         exit()
     else:
         post = requests.get('%susers/%s/media/recent/?access_token=%s' % (BASE_URL, user_id, APP_ACCESS_TOKEN)).json()
-        if post['meta']['code'] == 200:
+        if post['meta']['code'] == 200:                                      # HTTP 200 means transmission is OK
             # Checking whether some post exist or not
             if len(post['data']) > 0:
                 return post['data'][0]['id']  # Returning the media id
@@ -197,10 +208,10 @@ def like_a_post(insta_username):
     payload = {"access_token": APP_ACCESS_TOKEN}
     url = '%smedia/%s/likes' % (BASE_URL, media_id)
     post_a_like = requests.post(url, payload).json()
-    if post_a_like['meta']['code'] == 200:
-        print "Like was successful!"
+    if post_a_like['meta']['code'] == 200:                                 # HTTP 200 means transmission is OK
+        print colored("Like was successful!","magenta")
     else:
-        print "Your like was unsuccessful. Try again!"
+        print colored("Your like was unsuccessful. Try again!","red")
 
 
 # Method to post a comment
@@ -220,7 +231,6 @@ def post_a_comment(insta_username):
 def get_comments_list(insta_username):
     media_id = get_media_id(insta_username)
     request_url = ('%smedia/%s/comments/?access_token=%s' % (BASE_URL, media_id, APP_ACCESS_TOKEN))
-    # print 'GET request url : %s' % (request_url)
     comment = requests.get(request_url).json()
     if comment['meta']['code'] == 200:
         if len(comment['data']):
@@ -236,27 +246,27 @@ def get_comments_list(insta_username):
     else:
         print (colored("Status code other than 200 received!", "red"))
 
-        # Method to delete negative comments from post
 
-
+# Method to delete negative comments from a post
 def delete_negative_comments(insta_username):
     media_id = get_media_id(insta_username)
     request_url = ('%smedia/%s/comments/?access_token=%s' % (BASE_URL, media_id, APP_ACCESS_TOKEN))
     comment_info = requests.get(request_url).json()
-    if comment_info['meta']['code'] == 200:
-        if len(comment_info['data']):
+    if comment_info['meta']['code'] == 200:                                 # HTTP 200 means transmission is OK
+        if len(comment_info['data']):                                       # Checking whether any comment exits or not
             for index in range(0, len(comment_info['data'])):
                 comment_id = comment_info['data'][index]['id']
                 comment_text = comment_info['data'][index]['text']
                 blob = TextBlob(comment_text, analyzer=NaiveBayesAnalyzer())
                 if ((blob.sentiment.p_neg) > (blob.sentiment.p_pos)):
-                    print "Negative comment : %s" % (comment_text)
-                    r = requests.delete('%smedia/%s/comments/%s?access_token=%s' % (
-                    BASE_URL, media_id, comment_id, APP_ACCESS_TOKEN)).json()
+                    print "Negative comment : %s" % (comment_text)            # Displaying the negative comment
+                    r = requests.delete('%smedia/%s/comments/%s?access_token=%s' % (BASE_URL, media_id, comment_id, APP_ACCESS_TOKEN)).json()
                     if r['meta']['code'] == 200:
-                        print "Comments deleted successfully !"
+                        print "Comment deleted successfully !"
                     else:
-                        print "Unable to delete comments !"
+                        print "Unable to delete comment !"
+                else:
+                    print "Positive comment : %s" %(comment_text)               # Displaying the positive comment
         else:
             print (colored("There are no comments on the post!", "red"))
     else:
@@ -274,38 +284,38 @@ def start_bot():
     show_menu = True
     while show_menu:
         # Asking the user's choice
-        print (colored(
-            "\nWhat do you want to do? \n 1. Get your own details\n 2. Get your own recent post\n 3. Get user's information\n 4. Get user's recent post\n 5. Download user's recent post\n 6. Like a post\n 7. Comment on a post\n 8. Get list of comments on a post\n 9. Delete negative comments\n 0. Exit\n",
-            "green"))
+        print (colored("\nWhat do you want to do? \n 1. Get your own details\n 2. Get your own recent post\n 3. Download owner's recent post\n 4. Get user's information\n 5. Get user's recent post\n 6. Download user's recent post\n 7. Like a post\n 8. Comment on a post\n 9. Get list of comments on a post\n 10. Delete negative comments\n 0. Exit\n","green"))
         menu_choice = input(colored("Select your choice : ", "blue", attrs=["dark", "bold"]))
         if menu_choice == 1:
             self_info()  # Calling self_info() method to display info of owner
         elif menu_choice == 2:
             owner_recent_post()  # Calling owner_recent_post() method to get the recent post of owner
-        elif menu_choice == 3:
+        elif menu_choice ==3:
+            download_owner_recent_post()  # Calling download_owner_recent_post() method to download the recent post of owner
+        elif menu_choice == 4:
             # Asking the user name
             insta_username = raw_input("\nEnter the username of the user: ")
             get_user_info(insta_username)  # Calling the get_user_info() method to get other user's info
-        elif menu_choice == 4:
-            insta_username = raw_input("\nEnter the username of the user: ")
-            get_user_post(insta_username)  # Calling the get_user_post() method to get other user's post
         elif menu_choice == 5:
             insta_username = raw_input("\nEnter the username of the user: ")
-            download_user_post(insta_username)  # Calling the download_user_post() method to download other user's post
+            get_user_post(insta_username)  # Calling the get_user_post() method to get other user's post
         elif menu_choice == 6:
             insta_username = raw_input("\nEnter the username of the user: ")
-            like_a_post(insta_username)  # Calling the like_post() method to like other user's post
+            download_user_post(insta_username)  # Calling the download_user_post() method to download other user's post
         elif menu_choice == 7:
             insta_username = raw_input("\nEnter the username of the user: ")
-            post_a_comment(insta_username)  # Calling the post_a_comment() method to post a comment
+            like_a_post(insta_username)  # Calling the like_post() method to like other user's post
         elif menu_choice == 8:
             insta_username = raw_input("\nEnter the username of the user: ")
-            get_comments_list(insta_username)
+            post_a_comment(insta_username)  # Calling the post_a_comment() method to post a comment
         elif menu_choice == 9:
             insta_username = raw_input("\nEnter the username of the user: ")
-            delete_negative_comments(insta_username)  # Calling the delete_negative_comment() method to delete negative comments from a post
+            get_comments_list(insta_username)   # Calling the get_comments_list() method to display all the comments from a post
+        elif menu_choice == 10:
+            insta_username = raw_input("\nEnter the username of the user: ")
+            delete_negative_comments(insta_username)  # Calling the delete_negative_comments() method to delete negative comments from a post
         elif menu_choice == 0:
-            show_menu = False
+            show_menu = False                         # For exitting from menu
         else:
             # If user chooses something other than the menu choices
             print (colored("Invalid choice!!!", "red", attrs=["dark", "bold"]))
